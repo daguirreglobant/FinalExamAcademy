@@ -1,40 +1,25 @@
 package com.globant.pages;
 
-import com.globant.helpers.RandomString;
 import com.globant.helpers.User;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Class for interact with the Home Page of ESPN.
+ * @author d.aguirre
+ */
 public class HomePage extends BasePage{
+
+    @FindBy(css = "[data-testid=\"REGISTRATION-close\"]")
+    WebElement closeSignUpButton;
 
     @FindBy(id = "global-user-trigger")
     WebElement globalAccount;
-
-    @FindBy(css = ".display-user")
-    WebElement welcomeMessage;
-
-    @FindBy(css = "[tref='/members/v3_1/login']")
-    WebElement loginRef;
-
-    @FindBy(css= "[data-testid=\"login-logo\"]")
-    WebElement loginEspnLogo;
-
-    @FindBy(id = "BtnSubmit")
-    WebElement loginButton;
-
-    @FindBy(id = "BtnCreateAccount")
-    WebElement signUpRef;
-
-    @FindBy(css = "[data-testid=\"Title\"]")
-    WebElement signUpTitle;
 
     @FindBy(css = "[data-testid=\"InputFirstName\"]")
     WebElement inputFirstName;
@@ -48,54 +33,89 @@ public class HomePage extends BasePage{
     @FindBy(css = "[data-testid=\"password-new\"]")
     WebElement inputPassword;
 
-    @FindBy(css = "[data-testid=\"BtnSubmit\"]")
-    WebElement signUpButton;
+    @FindBy(id = "BtnSubmit")
+    WebElement loginButton;
 
-    @FindBy(css = "[data-testid=\"REGISTRATION-close\"]")
-    WebElement closeSignUpButton;
+    @FindBy(css= "[data-testid=\"login-logo\"]")
+    WebElement loginEspnLogo;
+
+    @FindBy(css = "[tref='/members/v3_1/login']")
+    WebElement loginRef;
 
     @FindBy(css = ".account-management li:last-child a")
     WebElement logOutButton;
 
+    @FindBy(css = "[data-testid=\"BtnSubmit\"]")
+    WebElement signUpButton;
+
+    @FindBy(id = "BtnCreateAccount")
+    WebElement signUpRef;
+
+    @FindBy(css = "[data-testid=\"Title\"]")
+    WebElement signUpTitle;
+
     @FindBy(css = "[href=\"http://www.espn.com/watch/\"")
     WebElement watchRef;
 
+    @FindBy(css = ".display-user")
+    WebElement welcomeMessage;
+
+    /**
+     * Constructor
+     * @param driver WebDriver
+     * @param url String
+     */
     public HomePage(WebDriver driver, String url){
         super(driver);
-        driver.get(url);
-        driver.manage().window().maximize();
-        PageFactory.initElements(driver, this);
+        this.driver.get(url);
+        this.driver.manage().window().maximize();
     }
 
     public void goToLoginModal(){
-        globalAccount.click();
-        loginRef.click();
-        driver.switchTo().frame("oneid-iframe");
+        this.goToGlobalAccount();
+        this.loginRef.click();
+        this.switchToFrame("oneid-iframe");
     }
 
     public void goToSignUpSection(){
         // first you have to be in Login Modal
-        signUpRef.click();
+        this.signUpRef.click();
     }
 
-    public void signUp(User user) {
-        inputFirstName.sendKeys(user.getName());
-        inputLastName.sendKeys(user.getLastName());
-        inputEmail.sendKeys(user.getEmail());
-        inputPassword.sendKeys(user.getPassword());
-        try {Thread.sleep(500);} catch (InterruptedException e) {}
-        this.getWait().until(ExpectedConditions.visibilityOf(signUpButton)).click();
-    }
-
+    /**
+     *
+     * @return WatchPage so the current session uses a different page
+     */
     public WatchPage goToWatch(){
-        this.getWait().until(ExpectedConditions.elementToBeClickable(this.watchRef));
-        watchRef.click();
+        waitUntilElementIsClickable(this.watchRef).click();
         return new WatchPage(this.driver);
     }
 
+    /**
+     * Fill the form and signs up a user
+     * @param user User object with basic information
+     */
+    public void signUp(User user) {
+        this.inputFirstName.sendKeys(user.getName());
+        this.inputLastName.sendKeys(user.getLastName());
+        this.inputEmail.sendKeys(user.getEmail());
+        this.inputPassword.sendKeys(user.getPassword());
+        try {Thread.sleep(500);} catch (InterruptedException e) {}
+        waitUntilElementIsClickable(this.signUpButton).click();
+    }
+
+    public void logOut(){
+        this.goToGlobalAccount();
+        this.logOutButton.click();
+        this.waitUntilPageRefreshed();
+    }
+
+    /**
+     *
+     * @return String the name of the user if exists, otherwise empty string
+     */
     public String getUserName(){
-        this.getWait().until(ExpectedConditions.elementToBeClickable(globalAccount));
-        this.globalAccount.click();
+        this.goToGlobalAccount();
         List<WebElement> userNameList = this.welcomeMessage.findElements(By.tagName("span"));
         if (userNameList.isEmpty()){
             return "";
@@ -107,31 +127,36 @@ public class HomePage extends BasePage{
         return userName;
     }
 
-    public void logOut(){
-        this.getWait().until(ExpectedConditions.elementToBeClickable(globalAccount));
-        this.globalAccount.click();
-        this.logOutButton.click();
-        this.waitUntilPageRefreshed();
-    }
-
+    /**
+     *
+     * @return HashMap with the elements of the login Modal
+     */
     public HashMap<String, Boolean> getElementsLogin(){
-        HashMap<String, Boolean> elementsInLogin = new HashMap<String, Boolean>();
-        elementsInLogin.put("espn logo", loginEspnLogo.isDisplayed());
-        elementsInLogin.put("login button", loginButton.isDisplayed());
-        elementsInLogin.put("signup button", signUpRef.isDisplayed());
+        HashMap<String, Boolean> elementsInLogin = new HashMap<>();
+        elementsInLogin.put("espn logo", this.loginEspnLogo.isDisplayed());
+        elementsInLogin.put("login button", this.loginButton.isDisplayed());
+        elementsInLogin.put("signup button", this.signUpRef.isDisplayed());
         return elementsInLogin;
     }
 
+    /**
+     *
+     * @return HashMap with the displayed info of the elements on signup form
+     */
     public HashMap<String, Boolean> getElementsSignUp(){
-        HashMap<String, Boolean> elementsInSignUp = new HashMap<String, Boolean>();
-        elementsInSignUp.put("title", signUpTitle.isDisplayed());
-        elementsInSignUp.put("first name", inputFirstName.isDisplayed());
-        elementsInSignUp.put("last name", inputLastName.isDisplayed());
-        elementsInSignUp.put("email", inputEmail.isDisplayed());
-        elementsInSignUp.put("password",inputPassword.isDisplayed());
-        elementsInSignUp.put("signup button",signUpButton.isDisplayed());
-        elementsInSignUp.put("close button",closeSignUpButton.isDisplayed());
+        HashMap<String, Boolean> elementsInSignUp = new HashMap<>();
+        elementsInSignUp.put("title", this.signUpTitle.isDisplayed());
+        elementsInSignUp.put("first name", this.inputFirstName.isDisplayed());
+        elementsInSignUp.put("last name", this.inputLastName.isDisplayed());
+        elementsInSignUp.put("email", this.inputEmail.isDisplayed());
+        elementsInSignUp.put("password", this.inputPassword.isDisplayed());
+        elementsInSignUp.put("signup button", this.signUpButton.isDisplayed());
+        elementsInSignUp.put("close button", this.closeSignUpButton.isDisplayed());
         return elementsInSignUp;
+    }
+
+    private void goToGlobalAccount(){
+        waitUntilElementIsClickable(this.globalAccount).click();
     }
 
 }
